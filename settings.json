@@ -6,8 +6,8 @@
     "type": "offline"
   },
   "server": {
-    "ip": "MyNexis.aternos.me",
-    "port": 64836,
+    "ip": "HumCraft.aternos.me"
+    "port": 61118,
     "version": "",
     "try-creative": false
   },

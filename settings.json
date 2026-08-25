@@ -8,7 +8,7 @@
   "server": {
     "ip": "HumCraft.aternos.me",
     "port": 61118,
-    "version": "auto",
+    "version": "1.20.4",
     "try-creative": false
   },
   "position": {

@@ -6,7 +6,7 @@
     "type": "offline"
   },
   "server": {
-    "ip": "HumCraft.aternos.me"
+    "ip": "HumCraft.aternos.me",
     "port": 61118,
     "version": "",
     "try-creative": false

@@ -1,7 +1,7 @@
 {
   "name": "yehoruabot",
-  "version": "2.6",
-  "description": "Autonomous Minecraft survival bot with PvP and AI chat integration.",
+  "version": "2.7",
+  "description": "Autonomous Minecraft survival bot with AI chat integration.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -14,7 +14,6 @@
     "minecraft-data": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",
-    "mineflayer-auto-eat": "latest",
-    "mineflayer-pvp": "latest"
+    "mineflayer-auto-eat": "latest"
   }
 }

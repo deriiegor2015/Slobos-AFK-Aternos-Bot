@@ -2,7 +2,7 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const autoEat = require('mineflayer-auto-eat');
-const pvp = require('mineflayer-pvp').plugin;
+const pvp = require('mineflayer-pvp'); // Виправляємо імпорт плагіна бою
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,15 +41,15 @@ function connectBot() {
     console.log("Запускаю yehoruabot на сервері...");
     
     mcBot = mineflayer.createBot({
-        host: process.env.MC_HOST || 'твій_сервер.aternos.me', // IP твого сервера
-        port: parseInt(process.env.MC_PORT) || 25565,        // Порт сервера
-        username: process.env.MC_USERNAME || 'yehoruabot'      // Нікнейм бота
+        host: process.env.MC_HOST || 'твій_сервер.aternos.me',
+        port: parseInt(process.env.MC_PORT) || 25565,
+        username: process.env.MC_USERNAME || 'yehoruabot'
     });
 
-    // Підключаємо плагіни для шляхів, їжі та бою
+    // Підключаємо плагіни правильно
     mcBot.loadPlugin(pathfinder);
     mcBot.loadPlugin(autoEat);
-    mcBot.loadPlugin(pvp);
+    mcBot.loadPlugin(pvp.plugin); // Виправляємо передачу плагіна PvP
 
     // Слухаємо чат майнкрафту для спілкування з ШІ
     mcBot.on('chat', async (username, message) => {
@@ -68,14 +68,13 @@ function connectBot() {
         const defaultMove = new Movements(mcBot);
         mcBot.pathfinder.setMovements(defaultMove);
 
-        // Запускаємо логіку активності (бою і блукання)
         startBotAI();
     });
 
     mcBot.on('end', (reason) => {
         console.log(`Бот відключився: ${reason}. Перепідключення через 30 секунд...`);
         mcBot = null;
-        setTimeout(connectBot, 30000); // Автоматичний перезапуск при вильоті
+        setTimeout(connectBot, 30000);
     });
 
     mcBot.on('error', (err) => {
@@ -88,7 +87,6 @@ function connectBot() {
 function startBotAI() {
     if (!mcBot) return;
 
-    // 1. Автоматичний бій: якщо поруч ворог (моб чи гравець) у радіусі 8 блоків — атакує
     mcBot.on('physicTick', () => {
         if (!mcBot || !mcBot.entity) return;
 
@@ -104,7 +102,6 @@ function startBotAI() {
         }
     });
 
-    // 2. Самостійне пересування світом (анти-AFK)
     setInterval(() => {
         if (!mcBot || !mcBot.entity || mcBot.pvp.target) return;
 
@@ -114,7 +111,7 @@ function startBotAI() {
         const targetGoal = new goals.GoalXZ(x, z);
         mcBot.pathfinder.setGoal(targetGoal);
 
-    }, 20000); // Оновлює шлях кожні 20 секунд
+    }, 20000);
 }
 
 // Вебсторінка для Render
@@ -124,6 +121,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Вебсервер запущено на порту ${PORT}`);
-    // Запускаємо бота автоматично при старті
     connectBot();
 });

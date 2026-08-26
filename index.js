@@ -5,9 +5,13 @@ const mineflayer = require("mineflayer");
 const { Movements, pathfinder, goals } = require("mineflayer-pathfinder");
 const collectBlock = require("mineflayer-collectblock");
 const autoEat = require("mineflayer-auto-eat");
-const pvpPlugin = require("mineflayer-pvp");
 const pvpModule = require("mineflayer-pvp");
-const pvp = typeof pvpModule === 'function' ? pvpModule : pvpModule.plugin;
+
+// Безпечне витягування функцій плагінів
+const pfPlugin = pathfinder.plugin || pathfinder;
+const cbPlugin = collectBlock.plugin || collectBlock;
+const aePlugin = autoEat.plugin || autoEat;
+const pvpPlugin = pvpModule.plugin || pvpModule;
 
 const { GoalBlock } = goals;
 const config = require("./settings.json");
@@ -70,7 +74,7 @@ app.get('/', (req, res) => {
               if (data.status === 'connected') {
                 box.className = 'status online';
                 box.textContent = 'Статус: У грі (Онлайн)';
-                                if (data.coords) {
+                if (data.coords) {
                   document.getElementById('coords-text').innerHTML = '<strong>Координати:</strong> X: ' + Math.floor(data.coords.x) + ', Y: ' + Math.floor(data.coords.y) + ', Z: ' + Math.floor(data.coords.z);
                 }
               } else {
@@ -167,11 +171,11 @@ function createBot() {
       hideErrors: false,
     });
 
-    // Підключаємо всі плагіни: шлях, збір блоків, їжу та PvP
-    bot.loadPlugin(pathfinder);
-    bot.loadPlugin(collectBlock);
-    bot.loadPlugin(autoEat);
-    bot.loadPlugin(pvp);
+    // Підключаємо всі плагіни безпечно
+    bot.loadPlugin(pfPlugin);
+    bot.loadPlugin(cbPlugin);
+    bot.loadPlugin(aePlugin);
+    bot.loadPlugin(pvpPlugin);
 
     let spawnHandled = false;
 
@@ -229,11 +233,9 @@ function createBot() {
 function initializePlayerBehavior(bot, mcData) {
   addLog("[PlayerAI] Активовано повну поведінку гравця (AI + PvP + Woodcutter).");
 
-  // 1. Автоматичне PvP (захист від ворожих мобів у радіусі 16 блоків)
   addInterval(() => {
     if (!bot || !botState.connected) return;
 
-    // Якщо бот вже зайнятий рубкою або кудись біжить для збору ресурсів, можемо дати пріоритет бою
     const filter = (entity) => 
       entity.type === 'mob' && 
       ['zombie', 'skeleton', 'spider', 'creeper'].includes(entity.name) && 
@@ -253,7 +255,6 @@ function initializePlayerBehavior(bot, mcData) {
     }
   }, 3000);
 
-  // 2. Автоматична рубка дерева (працює автономно, коли немає загрози)
   addInterval(async () => {
     if (!bot || !botState.connected || bot.pathfinder.isMoving() || bot.pvp.target) return;
 
@@ -271,12 +272,9 @@ function initializePlayerBehavior(bot, mcData) {
       addLog("[PlayerAI] Помітив дерево поблизу, йду добувати древесину 🪓");
       await bot.collectBlock.collect(block);
       addLog("[PlayerAI] Успішно зрубав блок!");
-    } catch (err) {
-      // Ігноруємо якщо заважає перешкода
-    }
-  }, 120000); // Кожні 2 хвилини
+    } catch (err) {}
+  }, 120000);
 
-  // 3. Імітація погляду навколо та випадкових кроків (анти-AFK + живе пересування)
   addInterval(() => {
     if (!bot || !botState.connected || bot.pathfinder.isMoving() || bot.pvp.target) return;
     

@@ -1,6 +1,5 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const autoEat = require('mineflayer-auto-eat').plugin;
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +13,7 @@ let settings = {
     version: "1.21.4"
   },
   "bot-account": {
-    "username": "YehorUABot",
+    "username": "yehoruabot",
     "type": "offline"
   }
 };
@@ -103,9 +102,8 @@ function createBot() {
     return;
   }
 
-  // Завантажуємо перевірені плагіни
+  // Завантажуємо тільки робочий плагін навігації
   bot.loadPlugin(pathfinder);
-  bot.loadPlugin(autoEat);
 
   bot.once("spawn", () => {
     if (spawnHandled) return;
@@ -117,27 +115,17 @@ function createBot() {
 
     // Автоматичний вхід через AuthMe (заміни ТвійПароль на свій)
     setTimeout(() => {
-      bot.chat("/login chaloyehor1");
+      bot.chat("/login YehorUAsub1232");
       addLog("[Bot] Відправлено команду /login");
     }, 1500);
 
     // Налаштування навігації для ходіння
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
-    defaultMove.canDig = false; // Вимикаємо копання, щоб бот спокійно ходив, а не ламав блоки
+    defaultMove.canDig = false;
     bot.pathfinder.setMovements(defaultMove);
 
-    // Налаштування авто-їди
-    if (bot.autoEat) {
-      bot.autoEat.options = {
-        priority: 'foodPoints',
-        startHTML: 14,
-        bannedFood: []
-      };
-      addLog("[Bot] Авто-їжа активована.");
-    }
-
-    addLog("[Bot] Бот готовий до прогулянок світом!");
+    addLog("[Bot] Бот готовий і починає прогулянку світом!");
 
     // Цикл: бот самостійно прогулюється навколо спавну
     const wanderInterval = setInterval(() => {
@@ -154,11 +142,7 @@ function createBot() {
         bot.pathfinder.setGoal(goal);
         addLog(`[Bot] Йду на координати: X: ${Math.round(randomX)}, Z: ${Math.round(randomZ)}`);
       }
-    }, 12000); // Кожні 12 секунд обирає нову точку для прогулянки
-  });
-
-  bot.on("autoeat_started", () => {
-    addLog("[Bot] Бот почав їсти їжу...");
+    }, 12000);
   });
 
   bot.on("kicked", (reason) => {

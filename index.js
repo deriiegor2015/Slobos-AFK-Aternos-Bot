@@ -182,6 +182,12 @@ function createBot() {
     bot.once("spawn", () => {
       if (spawnHandled) return;
       spawnHandled = true;
+            // Автоматичний вхід через AuthMe
+      setTimeout(() => {
+        bot.chat("/login ТвійПароль");
+        addLog("[Bot] Відправлено команду /login");
+      }, 1500);
+
 
       botState.connected = true;
       botState.reconnectAttempts = 0;

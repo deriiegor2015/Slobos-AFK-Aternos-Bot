@@ -105,7 +105,7 @@ function createBot() {
     return;
   }
 
-  // Завантажуємо всі плагіни без помилок
+  // Завантажуємо всі плагіни гарантовано як функції
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(pvp);
   bot.loadPlugin(autoEat);
@@ -119,13 +119,13 @@ function createBot() {
     botState.reconnectAttempts = 0;
     addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
 
-    // Автоматичний вхід через AuthMe
+    // Автоматичний вхід через AuthMe (заміни ТвійПароль на реальний)
     setTimeout(() => {
       bot.chat("/login ТвійПароль");
       addLog("[Bot] Відправлено команду /login");
     }, 1500);
 
-    // Налаштування навігації (Pathfinder)
+    // Налаштування навігації
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     defaultMove.canDig = true;
@@ -141,9 +141,9 @@ function createBot() {
       addLog("[Bot] Авто-їжа активована.");
     }
 
-    addLog("[Bot] Усі системи готові!");
+    addLog("[Bot] Усі системи повністю готові!");
 
-    // Цикл: пошук ворогів для бою або випадковий рух
+    // Цикл дій: бій або рух
     setInterval(() => {
       if (!bot || !bot.entity) return;
 

@@ -10,7 +10,7 @@ const { joinVoiceChannel } = require('@discordjs/voice');
 const BOT_USERNAME = "yehoruabot";
 const SERVER_IP = "HumCraft.aternos.me";
 const SERVER_PORT = 61118;
-const SERVER_VERSION = "latest";
+const SERVER_VERSION = "1.21.4";
 
 // Встав сюди свій дійсний токен Discord бота
 const DISCORD_BOT_TOKEN = process.env.DISCORD_TOKEN;

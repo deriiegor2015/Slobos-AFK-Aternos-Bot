@@ -146,8 +146,7 @@ function createBot() {
   }
 
   bot.loadPlugin(pathfinder);
-  bot.loadPlugin(pvp);
-  bot.loadPlugin(autoEat);
+
 
   bot.once("spawn", () => {
     botState.connected = true;

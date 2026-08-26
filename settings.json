@@ -1,5 +1,5 @@
 {
-  "name": "AFK Bot",
+  "name": "ProPlayer Bot",
   "bot-account": {
     "username": "Slobot00",
     "password": "",
@@ -12,7 +12,7 @@
     "try-creative": false
   },
   "position": {
-    "enabled": true,
+    "enabled": false,
     "x": 0,
     "y": 100,
     "z": 0
@@ -23,54 +23,58 @@
       "password": "chalol78"
     },
     "anti-afk": {
-      "enabled": true,
-      "sneak": true
+      "enabled": false
     },
     "chat-messages": {
       "enabled": true,
       "repeat": true,
-      "repeat-delay": 120,
+      "repeat-delay": 300,
       "messages": [
-        "I'm a regular player",
-        "Subscribe to YehorUA!",
-        "I like to play Minecraft!"
+        "Йду в шахту за ресурсами для нової бази!",
+        "Хто хоче пвп 1 на 1? Я готовий!",
+        "Канал YehorUA топ!"
       ]
     },
     "chat-log": true,
     "auto-reconnect": true,
-    "auto-reconnect-delay": 2000,
-    "max-reconnect-delay": 120000
+    "auto-reconnect-delay": 5000,
+    "max-reconnect-delay": 60000
   },
   "movement": {
     "enabled": true,
     "circle-walk": {
-      "enabled": true,
-      "radius": 4,
+      "enabled": false,
+      "radius": 5,
       "speed": 3000
     },
     "look-around": {
       "enabled": true,
-      "interval": 5000
+      "interval": 3000
     },
     "random-jump": {
       "enabled": true,
-      "interval": 10000
+      "interval": 6000
     }
   },
   "modules": {
-    "avoidMobs": true,
+    "avoidMobs": false,
     "combat": true,
-    "beds": false,
+    "beds": true,
     "chat": true,
-    "console-commands": true
+    "console-commands": true,
+    "pathfinder": true,
+    "autoMiner": true,
+    "pvp": true
   },
   "combat": {
     "attack-mobs": true,
-    "auto-eat": true
+    "attack-players": true,
+    "auto-eat": true,
+    "critical-hits": true
   },
   "beds": {
-    "pick-up-day": false,
-    "place-night": false
+    "pick-up-day": true,
+    "place-night": true
   },
   "discord": {
     "enabled": false,

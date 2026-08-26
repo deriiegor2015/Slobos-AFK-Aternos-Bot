@@ -172,10 +172,10 @@ function createBot() {
     });
 
     // Підключаємо всі плагіни безпечно
-    //bot.loadPlugin(pfPlugin);//
-    //bot.loadPlugin(cbPlugin);//
-    //bot.loadPlugin(aePlugin);//
-    //bot.loadPlugin(pvpPlugin);//
+    bot.loadPlugin(pfPlugin);
+    bot.loadPlugin(cbPlugin);
+    bot.loadPlugin(aePlugin);
+    bot.loadPlugin(pvpPlugin);
 
     let spawnHandled = false;
 

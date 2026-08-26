@@ -69,6 +69,9 @@
     "pathfinder": true,
     "autoMiner": true,
     "pvp": true
+      "auto-woodcutter": {
+    "enabled": true
+  },
   },
   "combat": {
     "attack-mobs": true,

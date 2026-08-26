@@ -1,24 +1,21 @@
 {
-  "name": "minecraft-afk-bot",
-  "version": "2.3",
-  "description": "Robust Minecraft bot with Discord Bot & Voice integration.",
+  "name": "yehoruabot",
+  "version": "2.5",
+  "description": "Autonomous Minecraft survival bot with Aternos and PvP integration.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "node --check index.js"
   },
-  "author": "Lamgerr",
+  "author": "yehoruabot",
   "license": "MIT",
   "dependencies": {
     "express": "latest",
+    "aternos-api": "latest",
     "minecraft-data": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",
     "mineflayer-auto-eat": "latest",
-    "mineflayer-collectblock": "latest",
-    "mineflayer-pvp": "latest",
-    "discord.js": "latest",
-    "@discordjs/voice": "latest",
-    "prism-media": "latest"
+    "mineflayer-pvp": "latest"
   }
 }

@@ -1,7 +1,6 @@
 const express = require('express');
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const autoEat = require('mineflayer-auto-eat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,7 +20,7 @@ async function getAIResponse(promptText) {
                 "model": "openai/gpt-3.5-turbo",
                 "messages": [
                     { "role": "system", "content": "Ти розумний бот-виживальщик на сервері Minecraft на ім'я yehoruabot. Відповідай коротко, цікаво та в стилі гравця українською мовою." },
-                    { "role": "user", "content": promptTest }
+                    { "role": "user", "content": promptText }
                 ]
             })
         });
@@ -45,9 +44,8 @@ function connectBot() {
         username: process.env.MC_USERNAME || 'yehoruabot'
     });
 
-    // Підключаємо робочі плагіни (без проблемного pvp)
+    // Підключаємо тільки шлях (без помилкових сторонніх плагінів)
     mcBot.loadPlugin(pathfinder);
-    mcBot.loadPlugin(autoEat);
 
     // Слухаємо чат майнкрафту для спілкування з ШІ
     mcBot.on('chat', async (username, message) => {

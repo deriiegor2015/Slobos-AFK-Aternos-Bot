@@ -13,7 +13,7 @@ let settings = {
     version: "1.21.4"
   },
   "bot-account": {
-    "username": "YehorBot",
+    "username": "yehoruabot",
     "type": "offline"
   }
 };

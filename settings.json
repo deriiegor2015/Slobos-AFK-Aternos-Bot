@@ -33,10 +33,6 @@
         "всім привіт",
         "хіхі",
         "Канал YehorUA топ!"
-        "auto-woodcutter": {
-  "enabled": true
-}
-
       ]
     },
     "chat-log": true,
@@ -69,9 +65,9 @@
     "pathfinder": true,
     "autoMiner": true,
     "pvp": true
-      "auto-woodcutter": {
-    "enabled": true
   },
+  "auto-woodcutter": {
+    "enabled": true
   },
   "combat": {
     "attack-mobs": true,

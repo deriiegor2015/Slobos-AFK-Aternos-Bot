@@ -14,5 +14,7 @@
     "minecraft-data": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest"
+    "mineflayer-auto-eat": "latest"
+    "mineflayer-collectblock": "latest"
   }
 }

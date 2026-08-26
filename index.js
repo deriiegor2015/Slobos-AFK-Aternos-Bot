@@ -6,7 +6,8 @@ const { Movements, pathfinder, goals } = require("mineflayer-pathfinder");
 const collectBlock = require("mineflayer-collectblock");
 const autoEat = require("mineflayer-auto-eat");
 const pvpPlugin = require("mineflayer-pvp");
-const pvp = pvpPlugin.plugin || pvpPlugin;
+const pvpModule = require("mineflayer-pvp");
+const pvp = typeof pvpModule === 'function' ? pvpModule : pvpModule.plugin;
 
 const { GoalBlock } = goals;
 const config = require("./settings.json");

@@ -13,9 +13,9 @@
     "express": "^4.19.2",
     "minecraft-data": "latest",
     "mineflayer": "latest",
-    "mineflayer-pathfinder": "latest"
-    "mineflayer-auto-eat": "latest"
-    "mineflayer-collectblock": "latest"
-    "mineflayer-pvp": "latest"
+    "mineflayer-pathfinder": "latest",
+    "mineflayer-auto-eat": "latest",
+    "mineflayer-collectblock": "latest",
+    "mineflayer-pvp": "latest",
   }
 }

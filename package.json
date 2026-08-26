@@ -1,7 +1,7 @@
 {
   "name": "yehoruabot",
-  "version": "2.5",
-  "description": "Autonomous Minecraft survival bot with Aternos and PvP integration.",
+  "version": "2.6",
+  "description": "Autonomous Minecraft survival bot with PvP and AI chat integration.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -11,7 +11,6 @@
   "license": "MIT",
   "dependencies": {
     "express": "latest",
-    "aternos-api": "latest",
     "minecraft-data": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",

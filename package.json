@@ -10,7 +10,7 @@
   "author": "Lamgerr",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "latest",
     "minecraft-data": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",

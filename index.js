@@ -2,7 +2,6 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const autoEat = require('mineflayer-auto-eat');
-const pvp = require('mineflayer-pvp'); // Виправляємо імпорт плагіна бою
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +21,7 @@ async function getAIResponse(promptText) {
                 "model": "openai/gpt-3.5-turbo",
                 "messages": [
                     { "role": "system", "content": "Ти розумний бот-виживальщик на сервері Minecraft на ім'я yehoruabot. Відповідай коротко, цікаво та в стилі гравця українською мовою." },
-                    { "role": "user", "content": promptText }
+                    { "role": "user", "content": promptTest }
                 ]
             })
         });
@@ -46,10 +45,9 @@ function connectBot() {
         username: process.env.MC_USERNAME || 'yehoruabot'
     });
 
-    // Підключаємо плагіни правильно
+    // Підключаємо робочі плагіни (без проблемного pvp)
     mcBot.loadPlugin(pathfinder);
     mcBot.loadPlugin(autoEat);
-    mcBot.loadPlugin(pvp.plugin); // Виправляємо передачу плагіна PvP
 
     // Слухаємо чат майнкрафту для спілкування з ШІ
     mcBot.on('chat', async (username, message) => {
@@ -83,27 +81,26 @@ function connectBot() {
     });
 }
 
-// Штучний інтелект бота (пошук їжі, рух і бій)
+// Логіка активності бота (блукання та захист)
 function startBotAI() {
     if (!mcBot) return;
 
+    // Простий автозахист: якщо поряд моб, бот дивиться на нього і б'є
     mcBot.on('physicTick', () => {
         if (!mcBot || !mcBot.entity) return;
 
         const filter = (entity) => entity.type === 'mob' || (entity.type === 'player' && entity.username !== mcBot.username);
         const target = mcBot.nearestEntity(filter);
 
-        if (target && mcBot.entity.position.distanceTo(target.position) < 8) {
-            mcBot.pvp.attack(target);
-        } else {
-            if (mcBot.pvp.target) {
-                mcBot.pvp.stop();
-            }
+        if (target && mcBot.entity.position.distanceTo(target.position) < 4) {
+            mcBot.lookAt(target.position.offset(0, target.height, 0));
+            mcBot.attack(target);
         }
     });
 
+    // Самостійне пересування світом (анти-AFK)
     setInterval(() => {
-        if (!mcBot || !mcBot.entity || mcBot.pvp.target) return;
+        if (!mcBot || !mcBot.entity) return;
 
         const x = mcBot.entity.position.x + (Math.random() * 30 - 15);
         const z = mcBot.entity.position.z + (Math.random() * 30 - 15);

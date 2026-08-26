@@ -13,7 +13,7 @@ const SERVER_VERSION = "1.21.4";
 const OWNER_USERNAME = "YehorUA8104";
 
 // Посилання на твій приватний Discord Webhook
-const DISCORD_WEBHOOK_URL = "ТВОЄ_ПОСИЛАННЯ_НА_DISCORD_WEBHOOK";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1542127496093376622/NTrYfClDE8hTLanuyERPGzxlsZ64UEv5AGcA1hvIIx2AaJKFoEueKJTPsxI1SBwhLolc";
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -41,7 +41,7 @@ function addLog(message) {
 
 // Надсилання сповіщень у Discord
 function sendDiscordWebhook(text) {
-  if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("ТВОЄ_ПОСИЛАННЯ")) return;
+  if (!DISCORD_WEBHOOK_URL) return;
   
   const data = JSON.stringify({ content: text });
   const url = new URL(DISCORD_WEBHOOK_URL);
@@ -216,7 +216,6 @@ function createBot() {
   // Автоматична реакція на гравців та PvP
   bot.on('playerJoined', (player) => {
     if (player.username === BOT_USERNAME) return;
-    // Якщо зайшов не ти, бот тримає гравця на прицілі або вітає
     addLog(`[Player] Гравець ${player.username} приєднався до сервера.`);
   });
 
@@ -278,7 +277,6 @@ function createBot() {
       } else if (cmd === "build") {
         startBuildingBase();
       } else if (cmd === "kill" || cmd === "attack") {
-        // Якщо ти напишеш у чат !attack [нік_гравця]
         const targetName = args[1];
         if (targetName && bot.players[targetName] && bot.players[targetName].entity) {
           bot.pvp.attack(bot.players[targetName].entity);
@@ -288,7 +286,6 @@ function createBot() {
           bot.chat(`Гравця "${targetName || ''}" немає поруч зі мною.`);
         }
       } else if (cmd === "stop") {
-        // Зупинити PvP чи ходьбу
         bot.pvp.stop();
         bot.pathfinder.stop();
         bot.chat("Зупинив усі дії.");

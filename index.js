@@ -177,29 +177,29 @@ function createBot() {
     bot.loadPlugin(aePlugin);
     bot.loadPlugin(pvpPlugin);
 
-    let spawnHandled = false;
-
-    bot.once("spawn", () => {
+        bot.once("spawn", () => {
       if (spawnHandled) return;
       spawnHandled = true;
-            // Автоматичний вхід через AuthMe
-      setTimeout(() => {
-        bot.chat("/login ТвійПароль");
-        addLog("[Bot] Відправлено команду /login");
-      }, 1500);
-
 
       botState.connected = true;
       botState.reconnectAttempts = 0;
       addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
 
-      const mcData = require("minecraft-data")(bot.version);
-      const defaultMove = new Movements(bot, mcData);
-      defaultMove.allowFreeMotion = false;
-      defaultMove.canDig = true;
-      bot.pathfinder.setMovements(defaultMove);
+      // Автоматичний вхід через AuthMe (через 1.5 секунди після спавну)
+      setTimeout(() => {
+        bot.chat("/login chaloyehor1");
+        addLog("[Bot] Відправлено команду /login");
+      }, 1500);
 
-      initializePlayerBehavior(bot, mcData);
+      // Простий Анти-AFK рух (тепер без важкого pathfinder)
+      setInterval(() => {
+        if (bot.entity) {
+          // Рандомний поворот голови або легкий стрибок, щоб не кікнуло за АФК
+          const yaw = Math.random() * Math.PI * 2;
+          const pitch = (Math.random() * Math.PI) - (Math.PI / 2);
+          bot.look(yaw, pitch, true);
+        }
+      }, 10000); // Кожні 10 секунд бот озирається
     });
 
     bot.on('autoeat_started', (item) => {

@@ -1,186 +1,162 @@
-const mineflayer = require('mineflayer');
-const { pathfinder, Movements } = require('mineflayer-pathfinder');
-const pvp = require('mineflayer-pvp').plugin;
-const autoEat = require('mineflayer-auto-eat').plugin;
 const express = require('express');
-const { Client, GatewayIntentBits } = require('discord.js');
-const { joinVoiceChannel } = require('@discordjs/voice');
+const { Aternos } = require('aternos-api');
+const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const autoEat = require('mineflayer-auto-eat');
+const pvp = require('mineflayer-pvp').plugin;
 
-// --- НАЛАШТУВАННЯ ---
-const BOT_USERNAME = "yehoruabot";
-const SERVER_IP = "HumCraft.aternos.me";
-const SERVER_PORT = 61118;
-const SERVER_VERSION = "1.21.4";
-
-// Встав сюди свій дійсний токен Discord бота
-const DISCORD_BOT_TOKEN = process.env.DISCORD_TOKEN;
-
-// --- ВЕБ-СЕРВЕР ДЛЯ RENDER (Запускаємо найпершим, щоб не було таймауту порту!) ---
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
-let botState = {
-  connected: false,
-  username: BOT_USERNAME,
-  host: SERVER_IP,
-  port: SERVER_PORT,
-  logs: [],
-  discordVoiceConnected: false
-};
+const aternos = new Aternos();
+let mcBot = null;
 
-function addLog(message) {
-  const time = new Date().toLocaleTimeString();
-  const logMessage = `[${time}] ${message}`;
-  console.log(logMessage);
-  botState.logs.unshift(logMessage);
-  if (botState.logs.length > 100) botState.logs.pop();
-}
+function connectBot() {
+    if (mcBot) return;
 
-app.get('/', (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <title>YehorUA - Bot Panel</title>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
-          .container { max-width: 900px; margin: auto; }
-          .card { background: #1e1e1e; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-          .status { padding: 6px 12px; border-radius: 5px; font-weight: bold; display: inline-block; }
-          .online { background: #28a745; color: #fff; }
-          .offline { background: #dc3545; color: #fff; }
-          pre { background: #121212; color: #00ff66; padding: 15px; border-radius: 5px; height: 250px; overflow-y: scroll; font-family: monospace; }
-          .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>🛡️ Панель управління: ${BOT_USERNAME}</h1>
-          <div class="card">
-            <h3>Статус</h3>
-            <p>Minecraft Бот: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE' : 'OFFLINE'}</span></p>
-            <p>Discord Voice: <span class="status ${botState.discordVoiceConnected ? 'online' : 'offline'}">${botState.discordVoiceConnected ? 'У ГОЛОСОВОМУ КАНАЛІ' : 'НЕ ПІДКЛЮЧЕНО'}</span></p>
-          </div>
-          <div class="card">
-            <h3>📜 Логи</h3>
-            <pre>${botState.logs.join('\n')}</pre>
-            <br>
-            <button class="btn" onclick="location.reload()">Оновити</button>
-          </div>
-        </div>
-      </body>
-    </html>
-  `);
-});
-
-// ПОРТ СТАРТУЄ МИТТЄВО ТУТ:
-app.listen(PORT, () => {
-  addLog(`[Server] Веб-панель запущена на порті ${PORT}`);
-});
-
-// --- ІНІЦІАЛІЗАЦІЯ DISCORD БОТА ---
-const discordClient = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates
-  ]
-});
-
-discordClient.on('ready', () => {
-  addLog(`[Discord] Бот ${discordClient.user.tag} успішно увійшов у систему!`);
-});
-
-// Обробка команд у Discord чаті
-discordClient.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-
-  if (message.content === '!status') {
-    message.reply(`🤖 Бот у Minecraft: **${botState.connected ? 'ONLINE 🟢' : 'OFFLINE 🔴'}**\n🛡️ Режим PvP: **Активний**`);
-  }
-
-  // Команда для підключення бота до твого голосового каналу в Discord: !join
-  if (message.content === '!join') {
-    const voiceChannel = message.member?.voice.channel;
-    if (!voiceChannel) {
-      return message.reply('❌ Зайди спочатку в голосовий канал Discord!');
-    }
-
-    try {
-      joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: voiceChannel.guild.id,
-        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-      });
-
-      botState.discordVoiceConnected = true;
-      message.reply(`🔊 Успішно зайшов у голосовий канал **${voiceChannel.name}**!`);
-      addLog(`[Discord Voice] Підключено до каналу ${voiceChannel.name}`);
-    } catch (error) {
-      addLog(`[Discord Voice Error] ${error.message}`);
-      message.reply('❌ Помилка підключення до голосу.');
-    }
-  }
-});
-
-discordClient.login(DISCORD_BOT_TOKEN);
-
-
-// --- ІНІЦІАЛІЗАЦІЯ MINECRAFT БОТА ---
-let bot = null;
-
-function createBot() {
-  addLog(`[Bot] Підключення ${BOT_USERNAME} до ${SERVER_IP}...`);
-
-  try {
-    bot = mineflayer.createBot({
-      host: SERVER_IP,
-      port: SERVER_PORT,
-      username: BOT_USERNAME,
-      version: SERVER_VERSION
+    console.log("Запускаю бота yehoruabot на сервері...");
+    
+    mcBot = mineflayer.createBot({
+        host: process.env.MC_HOST || 'твій_сервер.aternos.me', // Заміни на свій IP або вкажи через змінні середовища Render
+        port: parseInt(process.env.MC_PORT) || 25565,        // Порт сервера
+        username: process.env.MC_USERNAME || 'yehoruabot'      // Твій нікнейм для бота
     });
-  } catch (err) {
-    addLog(`[Bot] Помилка: ${err.message}`);
-    scheduleReconnect();
-    return;
-  }
 
-  bot.loadPlugin(pathfinder);
+    // Підключаємо плагіни для виживання, шляхів і бою
+    mcBot.loadPlugin(pathfinder);
+    mcBot.loadPlugin(autoEat);
+    mcBot.loadPlugin(pvp);
 
+    mcBot.on('spawn', () => {
+        console.log("yehoruabot успішно зайшов у світ і починає виживання!");
+        
+        const defaultMove = new Movements(mcBot);
+        mcBot.pathfinder.setMovements(defaultMove);
 
-  bot.once("spawn", () => {
-    botState.connected = true;
-    addLog(`[Bot] Успішно зайшов на сервер!`);
+        // Запускаємо логіку активності та оборони
+        startBotAI();
+    });
 
-    setTimeout(() => {
-      bot.chat("/login yehor1212");
-    }, 1500);
+    mcBot.on('end', (reason) => {
+        console.log(`Бот відключився від сервера. Причина: ${reason}`);
+        mcBot = null;
+    });
 
-    const mcData = require('minecraft-data')(bot.version);
-    const defaultMove = new Movements(bot, mcData);
-    defaultMove.canDig = false;
-    bot.pathfinder.setMovements(defaultMove);
-  });
-
-  bot.on("kicked", (reason) => {
-    botState.connected = false;
-    addLog(`[Bot] Кікнуто: ${reason}`);
-  });
-
-  bot.on("end", (reason) => {
-    botState.connected = false;
-    addLog(`[Bot] Відключено (${reason}). Перепідключення...`);
-    scheduleReconnect();
-  });
-
-  bot.on("error", (err) => {
-    addLog(`[Bot Error] ${err.message}`);
-  });
+    mcBot.on('error', (err) => {
+        console.log("Помилка бота:", err.message);
+        mcBot = null;
+    });
 }
 
-function scheduleReconnect() {
-  setTimeout(createBot, 5000);
+// Штучний інтелект бота (пошук їжі, рух і бій)
+function startBotAI() {
+    if (!mcBot) return;
+
+    // 1. Автоматичний бій: якщо поруч ворог (моб чи інший гравець) у радіусі 8 блоків — бот атакує
+    mcBot.on('physicTick', () => {
+        if (!mcBot || !mcBot.entity) return;
+
+        const filter = (entity) => entity.type === 'mob' || (entity.type === 'player' && entity.username !== mcBot.username);
+        const target = mcBot.nearestEntity(filter);
+
+        if (target && mcBot.entity.position.distanceTo(target.position) < 8) {
+            mcBot.pvp.attack(target);
+        } else {
+            if (mcBot.pvp.target) {
+                mcBot.pvp.stop();
+            }
+        }
+    });
+
+    // 2. Самостійне пересування світом (щоб не кікало за AFK та досліджувати місцевість)
+    setInterval(() => {
+        if (!mcBot || !mcBot.entity || mcBot.pvp.target) return;
+
+        const x = mcBot.entity.position.x + (Math.random() * 30 - 15);
+        const z = mcBot.entity.position.z + (Math.random() * 30 - 15);
+        const y = mcBot.entity.position.y;
+
+        const targetGoal = new goals.GoalXZ(x, z);
+        mcBot.pathfinder.setGoal(targetGoal);
+
+    }, 20000); // Оновлює шлях кожні 20 секунд
 }
 
-createBot();
+// Вебсторінка для управління (щоб Render бачив активний порт і ти міг увімкнути сервер)
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="uk">
+        <head>
+            <meta charset="UTF-8">
+            <title>yehoruabot - Aternos Control</title>
+            <style>
+                body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; text-align: center; padding: 50px; }
+                .btn { background: #1976d2; color: white; padding: 15px 30px; font-size: 18px; border-radius: 8px; border: none; cursor: pointer; }
+                .btn:hover { background: #1565c0; }
+                #status { margin-top: 20px; font-size: 16px; font-weight: bold; color: #64b5f6; }
+            </style>
+        </head>
+        <body>
+            <h1>Управління сервером Aternos та yehoruabot</h1>
+            <p>Натисни кнопку, щоб бот сам увімкнув твій сервер Aternos і зайшов у гру:</p>
+            <button class="btn" onclick="startServerAndJoin()">Увімкнути сервер і запустити бота</button>
+            <div id="status"></div>
+
+            <script>
+                async function startServerAndJoin() {
+                    document.getElementById('status').innerText = 'Надсилаю запит на запуск...';
+                    try {
+                        let res = await fetch('/start');
+                        let text = await res.text();
+                        document.getElementById('status').innerText = text;
+                    } catch (e) {
+                        document.getElementById('status').innerText = 'Помилка запиту.';
+                    }
+                }
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// Ендпоінт запуску Aternos і очікування входу
+app.get('/start', async (req, res) => {
+    try {
+        const servers = await aternos.getServers();
+        if (!servers || servers.length === 0) {
+            return res.send("Не знайдено жодного сервера в акаунті Aternos.");
+        }
+
+        const myServer = servers[0];
+        const status = await myServer.status();
+
+        if (status === 'offline') {
+            await myServer.start();
+            res.send("Сервер Aternos запускається! yehoruabot автоматично зайде туди щойно він стане онлайн.");
+
+            // Перевіряємо статус кожні 10 секунд
+            let interval = setInterval(async () => {
+                let currentStatus = await myServer.status();
+                if (currentStatus === 'online') {
+                    clearInterval(interval);
+                    console.log("Сервер онлайн! Запускаю yehoruabot...");
+                    setTimeout(connectBot, 5000); // Чекаємо 5 секунд після запуску
+                }
+            }, 10000);
+
+        } else if (status === 'online') {
+            connectBot();
+            res.send("Сервер уже працює, yehoruabot підключається до гри!");
+        } else {
+            res.send(`Статус сервера: ${status}. Зачекай трохи.`);
+        }
+    } catch (error) {
+        console.error(error);
+        res.send("Помилка підключення до Aternos API.");
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`yehoruabot запущено та слухає порт ${PORT}`);
+});

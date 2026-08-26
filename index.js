@@ -162,9 +162,8 @@ function createBot() {
 }
 
 function scheduleReconnect() {
-  botState.reconnectAttempts++;
-  const delay = Math.min(10000 * botState.reconnectAttempts, 60000);
-  addLog(`[Bot] Перепідключення через ${delay / 1000} сек...`);
+  const delay = 1; // 1 мілісекунда
+  addLog(`[Bot] Миттєве перепідключення...`);
   setTimeout(createBot, delay);
 }
 

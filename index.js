@@ -1,8 +1,6 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const pvp = require('mineflayer-pvp').plugin;
 const autoEat = require('mineflayer-auto-eat').plugin;
-const collectBlock = require('mineflayer-collectblock').plugin;
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -68,7 +66,7 @@ app.get('/', (req, res) => {
         </style>
       </head>
       <body>
-        <h1>Статус Мульти-Бота</h1>
+        <h1>Статус Блукаючого Бота</h1>
         <p>Статус: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE' : 'OFFLINE'}</span></p>
         <p>Сервер: <b>${botState.host}:${botState.port}</b></p>
         <p>Бот: <b>${botState.username}</b></p>
@@ -105,11 +103,9 @@ function createBot() {
     return;
   }
 
-  // Завантажуємо всі плагіни гарантовано як функції
+  // Завантажуємо перевірені плагіни
   bot.loadPlugin(pathfinder);
-  bot.loadPlugin(pvp);
   bot.loadPlugin(autoEat);
-  bot.loadPlugin(collectBlock);
 
   bot.once("spawn", () => {
     if (spawnHandled) return;
@@ -119,16 +115,16 @@ function createBot() {
     botState.reconnectAttempts = 0;
     addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
 
-    // Автоматичний вхід через AuthMe (заміни ТвійПароль на реальний)
+    // Автоматичний вхід через AuthMe (заміни ТвійПароль на свій)
     setTimeout(() => {
-      bot.chat("/login ТвійПароль");
+      bot.chat("/login chaloyehor1");
       addLog("[Bot] Відправлено команду /login");
     }, 1500);
 
-    // Налаштування навігації
+    // Налаштування навігації для ходіння
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
-    defaultMove.canDig = true;
+    defaultMove.canDig = false; // Вимикаємо копання, щоб бот спокійно ходив, а не ламав блоки
     bot.pathfinder.setMovements(defaultMove);
 
     // Налаштування авто-їди
@@ -141,32 +137,28 @@ function createBot() {
       addLog("[Bot] Авто-їжа активована.");
     }
 
-    addLog("[Bot] Усі системи повністю готові!");
+    addLog("[Bot] Бот готовий до прогулянок світом!");
 
-    // Цикл дій: бій або рух
-    setInterval(() => {
-      if (!bot || !bot.entity) return;
-
-      const filter = (entity) => 
-        (entity.type === 'mob' || entity.type === 'player') && 
-        entity.username !== bot.username &&
-        bot.entity.position.distanceTo(entity.position) < 12;
-
-      const target = bot.nearestEntity(filter);
-
-      if (target) {
-        addLog(`[Bot] Знайдено ціль: ${target.username || target.nameType || 'моб'}. Нападаю!`);
-        bot.pvp.attack(target);
-      } else if (!bot.pathfinder.isMoving()) {
-        const randomX = bot.entity.position.x + (Math.random() * 8 - 4);
-        const randomZ = bot.entity.position.z + (Math.random() * 8 - 4);
-        bot.pathfinder.setGoal(new goals.GoalXZ(randomX, randomZ));
+    // Цикл: бот самостійно прогулюється навколо спавну
+    const wanderInterval = setInterval(() => {
+      if (!bot || !bot.entity || !bot.pathfinder) {
+        clearInterval(wanderInterval);
+        return;
       }
-    }, 6000);
+
+      if (!bot.pathfinder.isMoving()) {
+        const randomX = bot.entity.position.x + (Math.floor(Math.random() * 20) - 10);
+        const randomZ = bot.entity.position.z + (Math.floor(Math.random() * 20) - 10);
+        const goal = new goals.GoalXZ(randomX, randomZ);
+        
+        bot.pathfinder.setGoal(goal);
+        addLog(`[Bot] Йду на координати: X: ${Math.round(randomX)}, Z: ${Math.round(randomZ)}`);
+      }
+    }, 12000); // Кожні 12 секунд обирає нову точку для прогулянки
   });
 
   bot.on("autoeat_started", () => {
-    addLog("[Bot] Бот почав їсти...");
+    addLog("[Bot] Бот почав їсти їжу...");
   });
 
   bot.on("kicked", (reason) => {

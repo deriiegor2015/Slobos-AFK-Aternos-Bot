@@ -15,7 +15,7 @@ const SERVER_VERSION = "1.21.4";
 // Встав сюди свій дійсний токен Discord бота
 const DISCORD_BOT_TOKEN = process.env.DISCORD_TOKEN;
 
-// --- ВЕБ-СЕРВЕР ДЛЯ RENDER ---
+// --- ВЕБ-СЕРВЕР ДЛЯ RENDER (Запускаємо найпершим, щоб не було таймауту порту!) ---
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -73,6 +73,7 @@ app.get('/', (req, res) => {
   `);
 });
 
+// ПОРТ СТАРТУЄ МИТТЄВО ТУТ:
 app.listen(PORT, () => {
   addLog(`[Server] Веб-панель запущена на порті ${PORT}`);
 });

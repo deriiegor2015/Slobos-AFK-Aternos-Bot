@@ -68,8 +68,8 @@ app.get('/', (req, res) => {
               if (data.status === 'connected') {
                 box.className = 'status online';
                 box.textContent = 'Статус: У грі (Онлайн)';
-                if (data.coords) {
-                  document.getElementById('coords-text').innerHTML = `<strong>Координати:</strong> X: ${Math.floor(data.coords.x)}, Y: ${Math.floor(data.coords.y)}, Z: ${Math.floor(data.coords.z)}`;
+                                if (data.coords) {
+                  document.getElementById('coords-text').innerHTML = '<strong>Координати:</strong> X: ' + Math.floor(data.coords.x) + ', Y: ' + Math.floor(data.coords.y) + ', Z: ' + Math.floor(data.coords.z);
                 }
               } else {
                 box.className = 'status offline';

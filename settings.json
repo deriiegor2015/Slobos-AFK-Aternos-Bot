@@ -30,9 +30,13 @@
       "repeat": true,
       "repeat-delay": 300,
       "messages": [
-        "Йду в шахту за ресурсами для нової бази!",
-        "Хто хоче пвп 1 на 1? Я готовий!",
+        "всім привіт",
+        "хіхі",
         "Канал YehorUA топ!"
+        "auto-woodcutter": {
+  "enabled": true
+}
+
       ]
     },
     "chat-log": true,

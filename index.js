@@ -5,7 +5,8 @@ const mineflayer = require("mineflayer");
 const { Movements, pathfinder, goals } = require("mineflayer-pathfinder");
 const collectBlock = require("mineflayer-collectblock");
 const autoEat = require("mineflayer-auto-eat");
-const pvp = require("mineflayer-pvp").plugin;
+const pvpPlugin = require("mineflayer-pvp");
+const pvp = pvpPlugin.plugin || pvpPlugin;
 
 const { GoalBlock } = goals;
 const config = require("./settings.json");

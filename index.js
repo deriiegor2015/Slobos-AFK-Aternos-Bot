@@ -13,7 +13,7 @@ let settings = {
     version: "1.21.4"
   },
   "bot-account": {
-    "username": "yehoruabot",
+    "username": "YehorBot",
     "type": "offline"
   }
 };
@@ -65,11 +65,11 @@ app.get('/', (req, res) => {
         </style>
       </head>
       <body>
-        <h1>Статус Блукаючого Бота</h1>
+        <h1>Статус Живого Бота</h1>
         <p>Статус: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE' : 'OFFLINE'}</span></p>
         <p>Сервер: <b>${botState.host}:${botState.port}</b></p>
         <p>Бот: <b>${botState.username}</b></p>
-        <h3>Логи підключення та дій:</h3>
+        <h3>Логи дій:</h3>
         <pre>${botState.logs.join('\n')}</pre>
         <script>setTimeout(() => location.reload(), 10000);</script>
       </body>
@@ -102,7 +102,6 @@ function createBot() {
     return;
   }
 
-  // Завантажуємо тільки робочий плагін навігації
   bot.loadPlugin(pathfinder);
 
   bot.once("spawn", () => {
@@ -111,23 +110,20 @@ function createBot() {
 
     botState.connected = true;
     botState.reconnectAttempts = 0;
-    addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
+    addLog("[Bot] Успішно зайшов на сервер і виглядає як гравець!");
 
-    // Автоматичний вхід через AuthMe (заміни ТвійПароль на свій)
+    // Автоматичний вхід через AuthMe (впиши свій пароль)
     setTimeout(() => {
-      bot.chat("/login YehorUAsub1232");
-      addLog("[Bot] Відправлено команду /login");
+      bot.chat("/login chaloyehorua1");
+      addLog("[Bot] Авторизовано через /login");
     }, 1500);
 
-    // Налаштування навігації для ходіння
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     defaultMove.canDig = false;
     bot.pathfinder.setMovements(defaultMove);
 
-    addLog("[Bot] Бот готовий і починає прогулянку світом!");
-
-    // Цикл: бот самостійно прогулюється навколо спавну
+    // 1. РЕЖИМ ПРОГУЛЯНОК: Бот ходить туди-сюди як людина
     const wanderInterval = setInterval(() => {
       if (!bot || !bot.entity || !bot.pathfinder) {
         clearInterval(wanderInterval);
@@ -135,19 +131,61 @@ function createBot() {
       }
 
       if (!bot.pathfinder.isMoving()) {
-        const randomX = bot.entity.position.x + (Math.floor(Math.random() * 20) - 10);
-        const randomZ = bot.entity.position.z + (Math.floor(Math.random() * 20) - 10);
-        const goal = new goals.GoalXZ(randomX, randomZ);
-        
-        bot.pathfinder.setGoal(goal);
-        addLog(`[Bot] Йду на координати: X: ${Math.round(randomX)}, Z: ${Math.round(randomZ)}`);
+        const randomX = bot.entity.position.x + (Math.floor(Math.random() * 16) - 8);
+        const randomZ = bot.entity.position.z + (Math.floor(Math.random() * 16) - 8);
+        bot.pathfinder.setGoal(new goals.GoalXZ(randomX, randomZ));
       }
-    }, 12000);
+    }, 10000);
+
+    // 2. РЕЖИМ ПОВЕДІНКИ ЖИВОГО ГРАВЦЯ (Стрибки, огляд, розмови)
+    const humanBehaviorInterval = setInterval(() => {
+      if (!bot || !bot.entity) {
+        clearInterval(humanBehaviorInterval);
+        return;
+      }
+
+      const action = Math.floor(Math.random() * 4);
+
+      if (action === 0) {
+        // Інколи стрибає
+        bot.setControlState('jump', true);
+        setTimeout(() => bot.setControlState('jump', false), 400);
+      } else if (action === 1) {
+        // Крутить головою в сторони, ніби роздивляється все навколо
+        const yaw = Math.random() * Math.PI * 2;
+        const pitch = (Math.random() * 0.5) - 0.25;
+        bot.look(yaw, pitch, true);
+      } else if (action === 2) {
+        // Час від часу пише щось у чат, щоб здаватися людиною
+        const phrases = [
+          "хтось є на базі?",
+          "треба буде потім сходити в шахту",
+          "класний сервер)",
+          "хто зі мною будувати?",
+          "пацани, а де тут найближче село?"
+        ];
+        const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+        bot.chat(randomPhrase);
+        addLog(`[Bot у чаті]: ${randomPhrase}`);
+      }
+    }, 15000);
+  });
+
+  // Реагування, коли хтось пише в чат (бот може привітатися)
+  bot.on("chat", (username, message) => {
+    if (username === bot.username) return;
+    
+    // Якщо хтось сказав "привіт" або назвав ім'я бота
+    if (message.toLowerCase().includes("привіт") || message.toLowerCase().includes("бот")) {
+      setTimeout(() => {
+        bot.chat(`Привіт, ${username}! 👋`);
+      }, 1000);
+    }
   });
 
   bot.on("kicked", (reason) => {
     botState.connected = false;
-    addLog(`[Bot] Кікнуто з сервера: ${reason}`);
+    addLog(`[Bot] Кікнуто: ${reason}`);
   });
 
   bot.on("end", (reason) => {
@@ -162,8 +200,9 @@ function createBot() {
 }
 
 function scheduleReconnect() {
-  const delay = 1; // 1 мілісекунда
-  addLog(`[Bot] Миттєве перепідключення...`);
+  botState.reconnectAttempts++;
+  const delay = 4000;
+  addLog(`[Bot] Перепідключення через ${delay / 1000} сек...`);
   setTimeout(createBot, delay);
 }
 

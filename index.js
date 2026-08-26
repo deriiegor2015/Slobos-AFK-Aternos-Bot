@@ -11,21 +11,58 @@ const PORT = process.env.PORT || 3000;
 const aternos = new Aternos();
 let mcBot = null;
 
+// Функція для генерації відповіді через ШІ (OpenRouter)
+async function getAIResponse(promptText) {
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "model": "openai/gpt-3.5-turbo",
+                "messages": [
+                    { "role": "system", "content": "Ти розумний бот-виживальщик на сервері Minecraft на ім'я yehoruabot. Відповідай коротко, цікаво та в стилі гравця українською мовою." },
+                    { "role": "user", "content": promptText }
+                ]
+            })
+        });
+
+        const data = await response.json();
+        return data.choices && data.choices[0] ? data.choices[0].message.content : "Я задумався...";
+    } catch (error) {
+        console.error("Помилка ШІ:", error);
+        return "Щось мій штучний інтелект трохи затупив...";
+    }
+}
+
 function connectBot() {
     if (mcBot) return;
 
     console.log("Запускаю бота yehoruabot на сервері...");
     
     mcBot = mineflayer.createBot({
-        host: process.env.MC_HOST || 'твій_сервер.aternos.me', // Заміни на свій IP або вкажи через змінні середовища Render
-        port: parseInt(process.env.MC_PORT) || 25565,        // Порт сервера
-        username: process.env.MC_USERNAME || 'yehoruabot'      // Твій нікнейм для бота
+        host: process.env.MC_HOST || 'твій_сервер.aternos.me',
+        port: parseInt(process.env.MC_PORT) || 25565,
+        username: process.env.MC_USERNAME || 'yehoruabot'
     });
 
     // Підключаємо плагіни для виживання, шляхів і бою
     mcBot.loadPlugin(pathfinder);
     mcBot.loadPlugin(autoEat);
     mcBot.loadPlugin(pvp);
+
+    // Слухач чату для відповідей через ШІ
+    mcBot.on('chat', async (username, message) => {
+        if (username === mcBot.username) return;
+
+        if (message.includes('yehoruabot') || message.includes('бот')) {
+            console.log(`Гравець ${username} запитує ШІ: ${message}`);
+            let aiReply = await getAIResponse(message);
+            mcBot.chat(aiReply);
+        }
+    });
 
     mcBot.on('spawn', () => {
         console.log("yehoruabot успішно зайшов у світ і починає виживання!");
@@ -52,7 +89,7 @@ function connectBot() {
 function startBotAI() {
     if (!mcBot) return;
 
-    // 1. Автоматичний бій: якщо поруч ворог (моб чи інший гравець) у радіусі 8 блоків — бот атакує
+    // 1. Автоматичний бій: якщо поруч ворог у радіусі 8 блоків — бот атакує
     mcBot.on('physicTick', () => {
         if (!mcBot || !mcBot.entity) return;
 
@@ -68,7 +105,7 @@ function startBotAI() {
         }
     });
 
-    // 2. Самостійне пересування світом (щоб не кікало за AFK та досліджувати місцевість)
+    // 2. Самостійне пересування світом (щоб не кікало за AFK)
     setInterval(() => {
         if (!mcBot || !mcBot.entity || mcBot.pvp.target) return;
 
@@ -79,10 +116,10 @@ function startBotAI() {
         const targetGoal = new goals.GoalXZ(x, z);
         mcBot.pathfinder.setGoal(targetGoal);
 
-    }, 20000); // Оновлює шлях кожні 20 секунд
+    }, 20000);
 }
 
-// Вебсторінка для управління (щоб Render бачив активний порт і ти міг увімкнути сервер)
+// Вебсторінка для управління
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -135,13 +172,12 @@ app.get('/start', async (req, res) => {
             await myServer.start();
             res.send("Сервер Aternos запускається! yehoruabot автоматично зайде туди щойно він стане онлайн.");
 
-            // Перевіряємо статус кожні 10 секунд
             let interval = setInterval(async () => {
                 let currentStatus = await myServer.status();
                 if (currentStatus === 'online') {
                     clearInterval(interval);
                     console.log("Сервер онлайн! Запускаю yehoruabot...");
-                    setTimeout(connectBot, 5000); // Чекаємо 5 секунд після запуску
+                    setTimeout(connectBot, 5000);
                 }
             }, 10000);
 

@@ -1,7 +1,7 @@
 {
   "name": "minecraft-afk-bot",
-  "version": "2.2",
-  "description": "Robust AFK bot for Minecraft servers with infinite uptime.",
+  "version": "2.3",
+  "description": "Robust Minecraft bot with Discord Bot & Voice integration.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -17,6 +17,8 @@
     "mineflayer-auto-eat": "latest",
     "mineflayer-collectblock": "latest",
     "mineflayer-pvp": "latest",
-    "mineflayer-simple-voice-chat": "^1.1.2"
+    "discord.js": "latest",
+    "@discordjs/voice": "latest",
+    "prism-media": "latest"
   }
 }

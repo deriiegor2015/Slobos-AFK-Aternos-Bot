@@ -1,301 +1,195 @@
-"use strict";
+const mineflayer = require('mineflayer');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const pvp = require('mineflayer-pvp').plugin;
+const autoEat = require('mineflayer-auto-eat').plugin;
+const collectBlock = require('mineflayer-collectblock').plugin;
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
-const { addLog, getLogs } = require("./logger");
-const mineflayer = require("mineflayer");
-const { Movements, pathfinder, goals } = require("mineflayer-pathfinder");
-const collectBlock = require("mineflayer-collectblock");
-const autoEat = require("mineflayer-auto-eat");
-const pvpModule = require("mineflayer-pvp");
+// Завантаження налаштувань із settings.json
+const settingsPath = path.join(__dirname, 'settings.json');
+let settings = {
+  server: {
+    ip: "HumCraft.aternos.me",
+    port: 61118,
+    version: "1.21.4"
+  },
+  "bot-account": {
+    "username": "YehorBot",
+    "type": "offline"
+  }
+};
 
-// Безпечне витягування функцій плагінів
-const pfPlugin = pathfinder.plugin || pathfinder;
-const cbPlugin = collectBlock.plugin || collectBlock;
-const aePlugin = autoEat.plugin || autoEat;
-const pvpPlugin = pvpModule.plugin || pvpModule;
+if (fs.existsSync(settingsPath)) {
+  try {
+    const data = fs.readFileSync(settingsPath, 'utf8');
+    settings = JSON.parse(data);
+  } catch (err) {
+    console.error("Помилка читання settings.json:", err);
+  }
+}
 
-const { GoalBlock } = goals;
-const config = require("./settings.json");
-const express = require("express");
-
-// ============================================================
-// EXPRESS SERVER - Вебпанель та моніторинг
-// ============================================================
+// Налаштування Express-сервера для Render
 const app = express();
-app.use(express.json());
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 let botState = {
   connected: false,
-  lastActivity: Date.now(),
+  username: settings["bot-account"].username,
+  host: settings.server.ip,
+  port: settings.server.port,
   reconnectAttempts: 0,
-  startTime: Date.now(),
-  errors: [],
-  wasThrottled: false,
+  logs: []
 };
+
+function addLog(message) {
+  const time = new Date().toLocaleTimeString();
+  const logMessage = `[${time}] ${message}`;
+  console.log(logMessage);
+  botState.logs.unshift(logMessage);
+  if (botState.logs.length > 100) {
+    botState.logs.pop();
+  }
+}
 
 app.get('/', (req, res) => {
   res.send(`
-    <!DOCTYPE html>
-    <html lang="uk">
+    <html>
       <head>
-        <title>${config.name} Dashboard</title>
+        <title>Slobos Bot Status</title>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-          body { font-family: Inter, sans-serif; background: #0d1117; color: #e6edf3; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-          main { width: 100%; max-width: 400px; padding: 20px; background: #161b22; border-radius: 12px; border: 1px solid #30363d; }
-          h1 { font-size: 22px; margin-bottom: 5px; color: #f0f6fc; }
-          p { color: #8b949e; font-size: 14px; }
-          .status { padding: 12px; border-radius: 8px; margin: 15px 0; font-weight: bold; text-align: center; }
-          .online { background: #0d2218; color: #3fb950; border: 1px solid #238636; }
-          .offline { background: #200d0d; color: #f85149; border: 1px solid #da3633; }
-          .btn { display: block; width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
-          .btn-start { background: #238636; color: white; }
-          .btn-stop { background: #da3633; color: white; }
+          body { font-family: Arial, sans-serif; background: #1e1e1e; color: #fff; padding: 20px; }
+          .status { padding: 10px; border-radius: 5px; display: inline-block; font-weight: bold; }
+          .online { background: #28a745; }
+          .offline { background: #dc3545; }
+          pre { background: #2d2d2d; padding: 15px; border-radius: 5px; height: 300px; overflow-y: scroll; }
         </style>
       </head>
       <body>
-        <main>
-          <h1>🤖 Minecraft Bot</h1>
-          <p>Повна імітація гравця (Woodcutter + PvP + AI)</p>
-          <div id="status-box" class="status offline">Перевірка підключення...</div>
-          <p><strong>Сервер:</strong> ${config.server.ip}</p>
-          <p id="coords-text"><strong>Координати:</strong> Завантаження...</p>
-          <button class="btn btn-start" onclick="fetch('/start',{method:'POST'}).then(()=>location.reload())">Запустити</button>
-          <button class="btn btn-stop" onclick="fetch('/stop',{method:'POST'}).then(()=>location.reload())">Зупинити</button>
-          <a href="/logs" class="btn" style="background: #21262d; color: #c9d1d9; margin-top: 15px; display:block;">Переглянути логи</a>
-        </main>
-        <script>
-          setInterval(async () => {
-            try {
-              const res = await fetch('/health');
-              const data = await res.json();
-              const box = document.getElementById('status-box');
-              if (data.status === 'connected') {
-                box.className = 'status online';
-                box.textContent = 'Статус: У грі (Онлайн)';
-                if (data.coords) {
-                  document.getElementById('coords-text').innerHTML = '<strong>Координати:</strong> X: ' + Math.floor(data.coords.x) + ', Y: ' + Math.floor(data.coords.y) + ', Z: ' + Math.floor(data.coords.z);
-                }
-              } else {
-                box.className = 'status offline';
-                box.textContent = 'Статус: Відключено';
-              }
-            } catch(e) {}
-          }, 3000);
-        </script>
+        <h1>Статус Мульти-Бота</h1>
+        <p>Статус: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE' : 'OFFLINE'}</span></p>
+        <p>Сервер: <b>${botState.host}:${botState.port}</b></p>
+        <p>Бот: <b>${botState.username}</b></p>
+        <h3>Логи підключення та дій:</h3>
+        <pre>${botState.logs.join('\n')}</pre>
+        <script>setTimeout(() => location.reload(), 10000);</script>
       </body>
     </html>
   `);
 });
 
-app.get("/health", (req, res) => {
-  res.json({
-    status: botState.connected ? "connected" : "disconnected",
-    uptime: Math.floor((Date.now() - botState.startTime) / 1000),
-    coords: bot && bot.entity ? bot.entity.position : null,
-  });
+app.listen(PORT, () => {
+  console.log(`[Server] Запущено на порті ${PORT}`);
 });
 
-app.get("/ping", (req, res) => res.send("pong"));
-
-app.get("/logs", (req, res) => {
-  const logs = getLogs();
-  res.send(`
-    <html>
-      <body style="background:#0d1117; color:#e6edf3; font-family:monospace; padding:20px;">
-        <h2>Логи бота</h2>
-        <a href="/" style="color: #58a6ff;">← На головну</a>
-        <pre>${logs.join("\n")}</pre>
-      </body>
-    </html>
-  `);
-});
-
-let botRunning = true;
-
-app.post("/start", (req, res) => {
-  if (botRunning) return res.json({ success: false });
-  botRunning = true;
-  createBot();
-  res.json({ success: true });
-});
-
-app.post("/stop", (req, res) => {
-  if (!botRunning) return res.json({ success: false });
-  botRunning = false;
-  if (bot) { bot.end(); bot = null; }
-  clearAllIntervals();
-  res.json({ success: true });
-});
-
-const server = app.listen(PORT, "0.0.0.0", () => {
-  addLog(`[Server] Запущено на порті ${PORT}`);
-});
-
-// ============================================================
-// ЛОГІКА БОТА ТА ПОВЕДІНКА ГРАВЦЯ
-// ============================================================
 let bot = null;
-let activeIntervals = [];
-let reconnectTimeoutId = null;
-
-function clearAllIntervals() {
-  activeIntervals.forEach((id) => clearInterval(id));
-  activeIntervals = [];
-}
-
-function addInterval(callback, delay) {
-  const id = setInterval(callback, delay);
-  activeIntervals.push(id);
-  return id;
-}
+let spawnHandled = false;
 
 function createBot() {
-  if (bot) {
-    clearAllIntervals();
-    try { bot.removeAllListeners(); bot.end(); } catch (e) {}
-    bot = null;
-  }
-
-  addLog(`[Bot] Підключення до ${config.server.ip}:${config.server.port}...`);
+  spawnHandled = false;
+  addLog(`[Bot] Підключення до ${settings.server.ip}:${settings.server.port}...`);
 
   try {
     bot = mineflayer.createBot({
-      username: config["bot-account"].username,
-      password: config["bot-account"].password || undefined,
-      auth: config["bot-account"].type,
-      host: config.server.ip,
-      port: config.server.port,
-      version: config.server.version || false,
-      hideErrors: false,
+      host: settings.server.ip,
+      port: settings.server.port,
+      username: settings["bot-account"].username,
+      version: settings.server.version || false
     });
-
-    // Підключаємо всі плагіни безпечно
-    bot.loadPlugin(pfPlugin);
-    bot.loadPlugin(cbPlugin);
-    bot.loadPlugin(aePlugin);
-    bot.loadPlugin(pvpPlugin);
-
-        bot.once("spawn", () => {
-      if (spawnHandled) return;
-      spawnHandled = true;
-
-      botState.connected = true;
-      botState.reconnectAttempts = 0;
-      addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
-
-      // Автоматичний вхід через AuthMe (через 1.5 секунди після спавну)
-      setTimeout(() => {
-        bot.chat("/login chaloyehor1");
-        addLog("[Bot] Відправлено команду /login");
-      }, 1500);
-
-      // Простий Анти-AFK рух (тепер без важкого pathfinder)
-      setInterval(() => {
-        if (bot.entity) {
-          // Рандомний поворот голови або легкий стрибок, щоб не кікнуло за АФК
-          const yaw = Math.random() * Math.PI * 2;
-          const pitch = (Math.random() * Math.PI) - (Math.PI / 2);
-          bot.look(yaw, pitch, true);
-        }
-      }, 10000); // Кожні 10 секунд бот озирається
-    });
-
-    bot.on('autoeat_started', (item) => {
-      addLog(`[Food] Зголоднів, їм ${item.name}! 🍎`);
-    });
-
-    bot.on("kicked", (reason) => {
-      addLog(`[Bot] Кікнуто з сервера: ${JSON.stringify(reason)}`);
-      botState.connected = false;
-      clearAllIntervals();
-    });
-
-    bot.on("end", (reason) => {
-      addLog(`[Bot] Відключено: ${reason || "Причина невідома"}`);
-      botState.connected = false;
-      clearAllIntervals();
-      if (botRunning) {
-        reconnectTimeoutId = setTimeout(() => createBot(), 10000);
-      }
-    });
-
-    bot.on("error", (err) => {
-      addLog(`[Bot] Помилка: ${err.message}`);
-    });
-
   } catch (err) {
     addLog(`[Bot] Помилка ініціалізації: ${err.message}`);
-    if (botRunning) {
-      reconnectTimeoutId = setTimeout(() => createBot(), 10000);
-    }
+    botState.connected = false;
+    scheduleReconnect();
+    return;
   }
-}
 
-// ============================================================
-// ПОВЕДІНКА ЖИВОГО ГРАВЦЯ (Рух, Рубка дерев, PvP)
-// ============================================================
-function initializePlayerBehavior(bot, mcData) {
-  addLog("[PlayerAI] Активовано повну поведінку гравця (AI + PvP + Woodcutter).");
+  // Завантажуємо всі плагіни без помилок
+  bot.loadPlugin(pathfinder);
+  bot.loadPlugin(pvp);
+  bot.loadPlugin(autoEat);
+  bot.loadPlugin(collectBlock);
 
-  addInterval(() => {
-    if (!bot || !botState.connected) return;
+  bot.once("spawn", () => {
+    if (spawnHandled) return;
+    spawnHandled = true;
 
-    const filter = (entity) => 
-      entity.type === 'mob' && 
-      ['zombie', 'skeleton', 'spider', 'creeper'].includes(entity.name) && 
-      entity.position.distanceTo(bot.entity.position) < 16;
-    
-    const target = bot.nearestEntity(filter);
+    botState.connected = true;
+    botState.reconnectAttempts = 0;
+    addLog("[Bot] Успішно зайшов на сервер і з'явився у світі!");
 
-    if (target) {
-      if (!bot.pvp.target) {
-        addLog(`[PvP] Помітив ворога (${target.name}), вступаю в бій! ⚔️`);
+    // Автоматичний вхід через AuthMe
+    setTimeout(() => {
+      bot.chat("/login ТвійПароль");
+      addLog("[Bot] Відправлено команду /login");
+    }, 1500);
+
+    // Налаштування навігації (Pathfinder)
+    const mcData = require('minecraft-data')(bot.version);
+    const defaultMove = new Movements(bot, mcData);
+    defaultMove.canDig = true;
+    bot.pathfinder.setMovements(defaultMove);
+
+    // Налаштування авто-їди
+    if (bot.autoEat) {
+      bot.autoEat.options = {
+        priority: 'foodPoints',
+        startHTML: 14,
+        bannedFood: []
+      };
+      addLog("[Bot] Авто-їжа активована.");
+    }
+
+    addLog("[Bot] Усі системи готові!");
+
+    // Цикл: пошук ворогів для бою або випадковий рух
+    setInterval(() => {
+      if (!bot || !bot.entity) return;
+
+      const filter = (entity) => 
+        (entity.type === 'mob' || entity.type === 'player') && 
+        entity.username !== bot.username &&
+        bot.entity.position.distanceTo(entity.position) < 12;
+
+      const target = bot.nearestEntity(filter);
+
+      if (target) {
+        addLog(`[Bot] Знайдено ціль: ${target.username || target.nameType || 'моб'}. Нападаю!`);
         bot.pvp.attack(target);
+      } else if (!bot.pathfinder.isMoving()) {
+        const randomX = bot.entity.position.x + (Math.random() * 8 - 4);
+        const randomZ = bot.entity.position.z + (Math.random() * 8 - 4);
+        bot.pathfinder.setGoal(new goals.GoalXZ(randomX, randomZ));
       }
-    } else {
-      if (bot.pvp.target) {
-        bot.pvp.stop();
-      }
-    }
-  }, 3000);
+    }, 6000);
+  });
 
-  addInterval(async () => {
-    if (!bot || !botState.connected || bot.pathfinder.isMoving() || bot.pvp.target) return;
+  bot.on("autoeat_started", () => {
+    addLog("[Bot] Бот почав їсти...");
+  });
 
-    try {
-      const blockType = mcData.blocksByName.oak_log;
-      if (!blockType) return;
+  bot.on("kicked", (reason) => {
+    botState.connected = false;
+    addLog(`[Bot] Кікнуто з сервера: ${reason}`);
+  });
 
-      const block = bot.findBlock({
-        matching: blockType.id,
-        maxDistance: 24
-      });
+  bot.on("end", (reason) => {
+    botState.connected = false;
+    addLog(`[Bot] Відключено: ${reason}`);
+    scheduleReconnect();
+  });
 
-      if (!block) return;
-
-      addLog("[PlayerAI] Помітив дерево поблизу, йду добувати древесину 🪓");
-      await bot.collectBlock.collect(block);
-      addLog("[PlayerAI] Успішно зрубав блок!");
-    } catch (err) {}
-  }, 120000);
-
-  addInterval(() => {
-    if (!bot || !botState.connected || bot.pathfinder.isMoving() || bot.pvp.target) return;
-    
-    const yaw = Math.random() * Math.PI * 2;
-    const pitch = (Math.random() * 0.5) - 0.25;
-    bot.look(yaw, pitch, true);
-    
-    if (Math.random() > 0.6) {
-      const currentPos = bot.entity.position;
-      const randomX = currentPos.x + (Math.random() * 6 - 3);
-      const randomZ = currentPos.z + (Math.random() * 6 - 3);
-      bot.pathfinder.setGoal(new GoalBlock(Math.floor(randomX), currentPos.y, Math.floor(randomZ)));
-    }
-  }, 30000);
+  bot.on("error", (err) => {
+    addLog(`[Bot] Помилка: ${err.message}`);
+  });
 }
 
-// Запуск при старті
+function scheduleReconnect() {
+  botState.reconnectAttempts++;
+  const delay = Math.min(10000 * botState.reconnectAttempts, 60000);
+  addLog(`[Bot] Перепідключення через ${delay / 1000} сек...`);
+  setTimeout(createBot, delay);
+}
+
 createBot();

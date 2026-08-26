@@ -1,20 +1,21 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const pvp = require('mineflayer-pvp').plugin;
-const simpleVoiceChat = require('mineflayer-simple-voice-chat');
+const autoEat = require('mineflayer-auto-eat').plugin;
 const express = require('express');
-const https = require('https');
+const { Client, GatewayIntentBits } = require('discord.js');
+const { joinVoiceChannel } = require('@discordjs/voice');
 
-// Налаштування Minecraft
+// --- НАЛАШТУВАННЯ ---
 const BOT_USERNAME = "yehoruabot";
 const SERVER_IP = "HumCraft.aternos.me";
 const SERVER_PORT = 61118;
-const SERVER_VERSION = "1.21.4";
-const OWNER_USERNAME = "YehorUA8104";
+const SERVER_VERSION = "latest";
 
-// Посилання на твій приватний Discord Webhook
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1542127496093376622/NTrYfClDE8hTLanuyERPGzxlsZ64UEv5AGcA1hvIIx2AaJKFoEueKJTPsxI1SBwhLolc";
+// Встав сюди свій дійсний токен Discord бота
+const DISCORD_BOT_TOKEN = process.env.DISCORD_TOKEN;
 
+// --- ВЕБ-СЕРВЕР ДЛЯ RENDER ---
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -23,12 +24,8 @@ let botState = {
   username: BOT_USERNAME,
   host: SERVER_IP,
   port: SERVER_PORT,
-  reconnectAttempts: 0,
   logs: [],
-  serverStarting: false,
-  voiceConnected: false,
-  building: false,
-  pvpMode: true // Бот готовий до бою
+  discordVoiceConnected: false
 };
 
 function addLog(message) {
@@ -39,54 +36,11 @@ function addLog(message) {
   if (botState.logs.length > 100) botState.logs.pop();
 }
 
-// Надсилання сповіщень у Discord
-function sendDiscordWebhook(text) {
-  if (!DISCORD_WEBHOOK_URL) return;
-  
-  const data = JSON.stringify({ content: text });
-  const url = new URL(DISCORD_WEBHOOK_URL);
-  
-  const req = https.request({
-    hostname: url.hostname,
-    path: url.pathname + url.search,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(data)
-    }
-  }, (res) => {});
-
-  req.on('error', (err) => {
-    console.error("Помилка Discord Webhook:", err.message);
-  });
-
-  req.write(data);
-  req.end();
-}
-
-// Автоматичне пробудження Aternos
-function wakeUpAternosServer() {
-  if (botState.serverStarting) return;
-  botState.serverStarting = true;
-  addLog("[Aternos] Сервер вимкнено. Надсилаємо сигнал пробудження...");
-  sendDiscordWebhook("🔌 Сервер вимкнено. Пробуджую Aternos...");
-
-  const req = https.request(`https://${SERVER_IP}`, { method: 'GET' }, (res) => {
-    addLog("[Aternos] Сигнал прийнято, сервер запускається...");
-    sendDiscordWebhook("🚀 Сигнал прийнято, сервер запускається!");
-    setTimeout(() => { botState.serverStarting = false; }, 30000);
-  });
-
-  req.on('error', () => { botState.serverStarting = false; });
-  req.end();
-}
-
-// Веб-панель
 app.get('/', (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>YehorUA - ${BOT_USERNAME} Panel</title>
+        <title>YehorUA - Bot Panel</title>
         <meta charset="utf-8">
         <style>
           body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
@@ -101,19 +55,17 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>🛡️ Панель PvP-модератора: ${BOT_USERNAME}</h1>
-          
+          <h1>🛡️ Панель управління: ${BOT_USERNAME}</h1>
           <div class="card">
-            <h3>Статус системи (PvP & EssentialsX)</h3>
-            <p>Бот-модератор: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE (Готовий до PvP)' : 'OFFLINE'}</span></p>
-            <p>Режим бою: <b style="color: #ff4444;">АКТИВНИЙ (Захищає світ)</b></p>
+            <h3>Статус</h3>
+            <p>Minecraft Бот: <span class="status ${botState.connected ? 'online' : 'offline'}">${botState.connected ? 'ONLINE' : 'OFFLINE'}</span></p>
+            <p>Discord Voice: <span class="status ${botState.discordVoiceConnected ? 'online' : 'offline'}">${botState.discordVoiceConnected ? 'У ГОЛОСОВОМУ КАНАЛІ' : 'НЕ ПІДКЛЮЧЕНО'}</span></p>
           </div>
-
           <div class="card">
-            <h3>📜 Логи в реальному часі</h3>
+            <h3>📜 Логи</h3>
             <pre>${botState.logs.join('\n')}</pre>
             <br>
-            <button class="btn" onclick="location.reload()">Оновити сторінку</button>
+            <button class="btn" onclick="location.reload()">Оновити</button>
           </div>
         </div>
       </body>
@@ -122,15 +74,63 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[Server] Веб-панель запущена на порті ${PORT}`);
+  addLog(`[Server] Веб-панель запущена на порті ${PORT}`);
 });
 
+// --- ІНІЦІАЛІЗАЦІЯ DISCORD БОТА ---
+const discordClient = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
+  ]
+});
+
+discordClient.on('ready', () => {
+  addLog(`[Discord] Бот ${discordClient.user.tag} успішно увійшов у систему!`);
+});
+
+// Обробка команд у Discord чаті
+discordClient.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+
+  if (message.content === '!status') {
+    message.reply(`🤖 Бот у Minecraft: **${botState.connected ? 'ONLINE 🟢' : 'OFFLINE 🔴'}**\n🛡️ Режим PvP: **Активний**`);
+  }
+
+  // Команда для підключення бота до твого голосового каналу в Discord: !join
+  if (message.content === '!join') {
+    const voiceChannel = message.member?.voice.channel;
+    if (!voiceChannel) {
+      return message.reply('❌ Зайди спочатку в голосовий канал Discord!');
+    }
+
+    try {
+      joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: voiceChannel.guild.id,
+        adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      });
+
+      botState.discordVoiceConnected = true;
+      message.reply(`🔊 Успішно зайшов у голосовий канал **${voiceChannel.name}**!`);
+      addLog(`[Discord Voice] Підключено до каналу ${voiceChannel.name}`);
+    } catch (error) {
+      addLog(`[Discord Voice Error] ${error.message}`);
+      message.reply('❌ Помилка підключення до голосу.');
+    }
+  }
+});
+
+discordClient.login(DISCORD_BOT_TOKEN);
+
+
+// --- ІНІЦІАЛІЗАЦІЯ MINECRAFT БОТА ---
 let bot = null;
-let spawnHandled = false;
 
 function createBot() {
-  spawnHandled = false;
-  addLog(`[Bot] Підключення модератора ${BOT_USERNAME} до ${SERVER_IP}:${SERVER_PORT}...`);
+  addLog(`[Bot] Підключення ${BOT_USERNAME} до ${SERVER_IP}...`);
 
   try {
     bot = mineflayer.createBot({
@@ -140,182 +140,46 @@ function createBot() {
       version: SERVER_VERSION
     });
   } catch (err) {
-    addLog(`[Bot] Помилка ініціалізації: ${err.message}`);
-    botState.connected = false;
+    addLog(`[Bot] Помилка: ${err.message}`);
     scheduleReconnect();
     return;
   }
 
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(pvp);
-  bot.loadPlugin(simpleVoiceChat.plugin);
+  bot.loadPlugin(autoEat);
 
   bot.once("spawn", () => {
-    if (spawnHandled) return;
-    spawnHandled = true;
-
     botState.connected = true;
-    botState.reconnectAttempts = 0;
-    addLog(`[Bot] ${BOT_USERNAME} успішно зайшов на сервер з PvP-модулем!`);
-    sendDiscordWebhook("🟢 Бот `yehoruabot` у мережі. Режим PvP та захисту активовано.");
+    addLog(`[Bot] Успішно зайшов на сервер!`);
 
     setTimeout(() => {
-      bot.chat("/login ТвійПароль");
-      addLog("[Bot] Відправлено команду /login");
+      bot.chat("/login yehor1212");
     }, 1500);
 
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     defaultMove.canDig = false;
     bot.pathfinder.setMovements(defaultMove);
-
-    // Реалістичні прогулянки (коли не б'ється і не будує)
-    const realisticWalkInterval = setInterval(() => {
-      if (!bot || !bot.entity || !bot.pathfinder || botState.building || bot.pvp.target) return;
-
-      const actionType = Math.random();
-      if (actionType < 0.7) {
-        const dx = Math.floor(Math.random() * 40) - 20;
-        const dz = Math.floor(Math.random() * 40) - 20;
-        const targetX = bot.entity.position.x + dx;
-        const targetZ = bot.entity.position.z + dz;
-
-        try {
-          bot.pathfinder.setGoal(new goals.GoalXZ(targetX, targetZ));
-        } catch (e) {}
-      } else {
-        bot.pathfinder.stop();
-        const randomYaw = Math.random() * Math.PI * 2;
-        const randomPitch = (Math.random() * Math.PI) / 2 - Math.PI / 4;
-        bot.look(randomYaw, randomPitch, true);
-      }
-    }, 12000);
-  });
-
-  // Функція побудови бази
-  async function startBuildingBase() {
-    if (botState.building) return;
-    botState.building = true;
-    bot.chat("Починаю зводити красиву базу для тебе!");
-    sendDiscordWebhook("🏗️ Бот розпочав будівництво бази за наказом власника.");
-
-    try {
-      for (let i = 0; i < 5; i++) {
-        if (!bot || !bot.connected) break;
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      bot.chat("База повністю готова і чекає на тебе!");
-      sendDiscordWebhook("✨ Будівництво завершено! База готова.");
-    } catch (err) {
-      addLog(`[Build Error] ${err.message}`);
-    } finally {
-      botState.building = false;
-    }
-  }
-
-  // Автоматична реакція на гравців та PvP
-  bot.on('playerJoined', (player) => {
-    if (player.username === BOT_USERNAME) return;
-    addLog(`[Player] Гравець ${player.username} приєднався до сервера.`);
-  });
-
-  // Голосовий модуль
-  bot.on("audio_player_initialised", () => {
-    botState.voiceConnected = true;
-    addLog("[Voice] Голосовий модуль активовано!");
-  });
-
-  // Логіка чату та команд
-  bot.on("chat", (username, message) => {
-    if (username === BOT_USERNAME) return;
-    
-    const lowerMsg = message.toLowerCase();
-
-    // Захист світу від видалення
-    if (lowerMsg.includes("delete world") || lowerMsg.includes("rmdir") || lowerMsg.includes("/world delete")) {
-      addLog(`[ЗАХИСТ] Заблоковано команду від ${username}: "${message}"`);
-      bot.chat(`Увага, ${username}! Ця команда заблокована.`);
-      sendDiscordWebhook(`⚠️ Заблоковано небезпечну команду від гравця **${username}**: \`${message}\``);
-      return;
-    }
-
-    // Спілкування через /bot
-    if (message.startsWith("/bot") || message.startsWith("bot")) {
-      const userQuery = message.replace(/^\/bot|^\bbot\b/i, "").trim().toLowerCase();
-      addLog(`[Команда /bot від ${username}]: ${userQuery}`);
-
-      setTimeout(() => {
-        if (userQuery.includes("привіт")) {
-          bot.chat(`Привіт, ${username}! Я стежу за порядком і готовий захищати світ в PvP.`);
-        } else if (userQuery.includes("побудуй сервер") || userQuery.includes("побудуй базу")) {
-          startBuildingBase();
-        } else if (userQuery.includes("атакуй") || userQuery.includes("вбивай")) {
-          const targetPlayer = bot.players[username];
-          if (targetPlayer && targetPlayer.entity) {
-            bot.pvp.attack(targetPlayer.entity);
-            bot.chat(`Починаю атаку на ${username}!`);
-          } else {
-            bot.chat(`Я не бачу ворога поруч.`);
-          }
-        } else {
-          bot.chat(`Запит прийнято, ${username}!`);
-        }
-      }, 1000);
-    }
-
-    // Адмін-команди для тебе (YehorUA8104)
-    if (username === OWNER_USERNAME && message.startsWith("!")) {
-      const args = message.slice(1).trim().split(" ");
-      const cmd = args[0].toLowerCase();
-
-      if (cmd === "day") {
-        bot.chat("/time set day");
-        bot.chat("Встановив день!");
-      } else if (cmd === "clear") {
-        bot.chat("/weather clear");
-        bot.chat("Погода очищена!");
-      } else if (cmd === "build") {
-        startBuildingBase();
-      } else if (cmd === "kill" || cmd === "attack") {
-        const targetName = args[1];
-        if (targetName && bot.players[targetName] && bot.players[targetName].entity) {
-          bot.pvp.attack(bot.players[targetName].entity);
-          bot.chat(`Виконую твій наказ! Атакую гравця ${targetName}.`);
-          sendDiscordWebhook(`⚔️ Бот розпочав PvP-атаку на гравця **${targetName}** за наказом власника.`);
-        } else {
-          bot.chat(`Гравця "${targetName || ''}" немає поруч зі мною.`);
-        }
-      } else if (cmd === "stop") {
-        bot.pvp.stop();
-        bot.pathfinder.stop();
-        bot.chat("Зупинив усі дії.");
-      }
-    }
   });
 
   bot.on("kicked", (reason) => {
     botState.connected = false;
-    botState.voiceConnected = false;
     addLog(`[Bot] Кікнуто: ${reason}`);
-    sendDiscordWebhook(`⚠️ Бот кікнутий з сервера. Причина: ${reason}`);
   });
 
   bot.on("end", (reason) => {
     botState.connected = false;
-    botState.voiceConnected = false;
-    addLog(`[Bot] Відключено (${reason}). Пробуджуємо Aternos...`);
-    sendDiscordWebhook(`🔴 Сервер вимкнено (${reason}). Пробуджуємо Aternos...`);
-    wakeUpAternosServer();
+    addLog(`[Bot] Відключено (${reason}). Перепідключення...`);
     scheduleReconnect();
   });
 
   bot.on("error", (err) => {
-    addLog(`[Bot] Помилка: ${err.message}`);
+    addLog(`[Bot Error] ${err.message}`);
   });
 }
 
 function scheduleReconnect() {
-  botState.reconnectAttempts++;
   setTimeout(createBot, 5000);
 }
 

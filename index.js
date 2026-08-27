@@ -52,6 +52,7 @@ function connectBot() {
         host: 'humcraft.aternos.me', // Заміни на свою адресу Aternos
         port: 61118,
         username: 'yehoruabot'
+        version: '1.21.4'
     });
 
     mcBot.loadPlugin(pathfinder);

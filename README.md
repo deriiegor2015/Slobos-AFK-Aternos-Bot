@@ -112,14 +112,15 @@
 ```bash
 git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git
 ```
-- Перейди у папку проєкту:
+Перейди у папку проєкту:
 ```bash
-cd Slobos-AFK-Aternos-Bot... ```
-- Встанови залежності:
+cd Slobos-AFK-Aternos-Bot...
+```
+Встанови залежності:
 ```npm
 npm install... 
 ```
-- Запусти бота:
+Запусти бота:
 ```npm
 npm start... 
 ```

@@ -6,6 +6,7 @@
 
 У файлі `settings.json` зміни IP-адресу та порт на дані твого сервера:
 
+```json
 {
   "name": "ProPlayer Bot",
   "bot-account": {
@@ -15,7 +16,7 @@
   },
   "server": {
     "ip": "ТВІЙ_IP_СЕРВЕРА",
-    "port": "00000",
+    "port": 00000,
     "version": "1.21.4",
     "try-creative": false
   },
@@ -100,19 +101,16 @@
     "respond": true
   }
 }
-
 ## 🚀 Встановлення та запуск
-
-- Зайди на Aternos у розділ Плагіни (Plugins), введи у пошуку via та скачай його.
-- Клонуй репозиторій:
-git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git
-- Перейди у папку проєкту:
-cd Slobos-AFK-Aternos-Bot
-- Встанови залежності:
+-Зайди на Aternos у розділ Плагіни (Plugins), введи у пошуку via та скачай його.
+-клонуй репотизорій
+git clone [https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git](https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git)
+-перейди у папку проєкту
+cd Slobos-AFK-Aternos-bot
+-встанови залежності
 npm install
-- Запусти бота:
+-запусти бота 
 npm start
-
 ## ⚠️ Disclaimer
 Цей програмний продукт створений виключно в освітніх цілях. Автор не несе відповідальності за блокування облікових записів чи порушення правил серверів. Використовуй на власний розсуд.
 

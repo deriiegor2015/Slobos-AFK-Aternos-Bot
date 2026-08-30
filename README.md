@@ -6,7 +6,7 @@
 
 У файлі `settings.json` зміни IP-адресу та порт на дані твого сервера:
 
-⁠```json
+'''json
 
 {
   "name": "ProPlayer Bot",

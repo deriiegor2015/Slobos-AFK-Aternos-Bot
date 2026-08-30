@@ -1,4 +1,4 @@
-# Slobos-AFK-Aternos-Bot
+#  YehorUA-AFK-Aternos-Bot
 
 Повноцінний бот на базі Mineflayer для підтримки онлайн-статусу на серверах Aternos.
 

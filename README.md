@@ -110,7 +110,7 @@
 
 Клонуй репозиторій:
 ```bash
-git clone [https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git](https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git)...
+git clone [https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git](https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git)
 ```
 Перейди у папку проєкту:
 ```bash

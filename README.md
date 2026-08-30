@@ -105,11 +105,13 @@
 
 ## 🚀 Встановлення та запуск
 
+## 🚀 Встановлення та запуск
+
 Зайди на Aternos у розділ Плагіни (Plugins), введи у пошуку via та скачай його.
 
 Клонуй репозиторій:
 ```bash
-git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git...
+git clone [https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git](https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git)
 ```
 - Перейди у папку проєкту:
 ```bash

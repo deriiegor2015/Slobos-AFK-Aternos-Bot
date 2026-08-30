@@ -17,7 +17,7 @@
   },
   "server": {
     "ip": "ТВІЙ_IP_СЕРВЕРА",
-    "port": 00000,
+    "port": "00000",
     "version": "1.21.4",
     "try-creative": false
   },
@@ -107,13 +107,17 @@
 
 - Зайди на Aternos у розділ Плагіни (Plugins), введи у пошуку via та скачай його.
 - Клонуй репозиторій:
-git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git
+```bash
+git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git... ```
 - Перейди у папку проєкту:
-cd Slobos-AFK-Aternos-Bot
+```bash
+cd Slobos-AFK-Aternos-Bot... ```
 - Встанови залежності:
-npm install
+```npm
+npm install... ```
 - Запусти бота:
-npm start
+```npm
+npm start... ```
 
 ## ⚠️ Disclaimer
 Цей програмний продукт створений виключно в освітніх цілях. Автор не несе відповідальності за блокування облікових записів чи порушення правил серверів. Використовуй на власний розсуд.

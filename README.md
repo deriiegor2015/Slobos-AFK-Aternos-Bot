@@ -15,7 +15,7 @@
   },
   "server": {
     "ip": "ТВІЙ_IP_СЕРВЕРА",
-    "port": 00000,
+    "port": "00000",
     "version": "1.21.4",
     "try-creative": false
   },

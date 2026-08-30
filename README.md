@@ -5,7 +5,7 @@
 ## ⚙️ Конфігурація (settings.json)
 
 У файлі `settings.json` зміни IP-адресу та порт на дані твого сервера:
-
+'''json
 {
   "name": "ProPlayer Bot",
   "bot-account": {

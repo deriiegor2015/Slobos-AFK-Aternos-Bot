@@ -108,16 +108,19 @@
 - Зайди на Aternos у розділ Плагіни (Plugins), введи у пошуку via та скачай його.
 - Клонуй репозиторій:
 ```bash
-git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git... ```
+git clone https://github.com/deriiegor2015/Slobos-AFK-Aternos-Bot.git... 
+```
 - Перейди у папку проєкту:
 ```bash
 cd Slobos-AFK-Aternos-Bot... ```
 - Встанови залежності:
 ```npm
-npm install... ```
+npm install... 
+```
 - Запусти бота:
 ```npm
-npm start... ```
+npm start... 
+```
 
 ## ⚠️ Disclaimer
 Цей програмний продукт створений виключно в освітніх цілях. Автор не несе відповідальності за блокування облікових записів чи порушення правил серверів. Використовуй на власний розсуд.
